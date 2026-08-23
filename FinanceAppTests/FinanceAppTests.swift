@@ -166,6 +166,34 @@ struct FinanceAppTests {
         #expect(result.first?.amount == 200)
     }
 
+    @Test("Backup round-trip preserves entries and currency")
+    func backupRoundTrip() throws {
+        let originals = [entry(2025, 12, 75_000), entry(2026, 1, 125_500)]
+        let backup = FinanceBackup(entries: originals, currency: .eur)
+        let decoded = try FinanceBackupService.decode(FinanceBackupService.encode(backup))
+
+        #expect(decoded.currencyCode == AppCurrency.eur.rawValue)
+        #expect(decoded.entries.count == 2)
+        #expect(decoded.entries.last?.decimalAmount == 125_500)
+
+        let container = try makeContainer()
+        let context = container.mainContext
+        let conflicting = entry(2026, 1, 1)
+        context.insert(conflicting)
+        try context.save()
+
+        let restored = try FinanceBackupService.restore(
+            decoded,
+            existingEntries: [conflicting],
+            in: context
+        )
+        let entries = try context.fetch(FetchDescriptor<IncomeEntry>())
+
+        #expect(restored == 2)
+        #expect(entries.count == 2)
+        #expect(entries.first { $0.year == 2026 && $0.month == 1 }?.amount == 125_500)
+    }
+
     private func entry(_ year: Int, _ month: Int, _ amount: Decimal) -> IncomeEntry {
         IncomeEntry(year: year, month: month, amount: amount)
     }

@@ -19,7 +19,7 @@ struct FinanceAppApp: App {
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: isTesting,
-            cloudKitDatabase: isTesting
+            cloudKitDatabase: isTesting || AppBuildMode.isLocalOnly
                 ? .none
                 : .private(CloudSyncService.containerIdentifier)
         )
