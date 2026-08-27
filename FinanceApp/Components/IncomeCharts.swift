@@ -6,6 +6,17 @@ struct AnnualIncomeChart: View {
     let statistics: [YearStatistic]
     @Binding var selectedYear: Int?
 
+    private var orderedStatistics: [YearStatistic] {
+        statistics.sorted { $0.year < $1.year }
+    }
+
+    private var selectedYearLabel: Binding<String?> {
+        Binding(
+            get: { selectedYear.map(String.init) },
+            set: { selectedYear = $0.flatMap(Int.init) }
+        )
+    }
+
     private var selectedStatistic: YearStatistic? {
         guard let selectedYear else { return nil }
         return statistics.first { $0.year == selectedYear }
@@ -30,9 +41,9 @@ struct AnnualIncomeChart: View {
                     .foregroundStyle(.secondary)
             }
 
-            Chart(statistics) { item in
+            Chart(orderedStatistics) { item in
                 AreaMark(
-                    x: .value("Год", item.year),
+                    x: .value("Год", String(item.year)),
                     y: .value("Доход", item.total.doubleValue)
                 )
                 .foregroundStyle(
@@ -42,18 +53,18 @@ struct AnnualIncomeChart: View {
                         endPoint: .bottom
                     )
                 )
-                .interpolationMethod(.catmullRom)
+                .interpolationMethod(.linear)
 
                 LineMark(
-                    x: .value("Год", item.year),
+                    x: .value("Год", String(item.year)),
                     y: .value("Доход", item.total.doubleValue)
                 )
                 .foregroundStyle(AppTheme.accent)
                 .lineStyle(.init(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                .interpolationMethod(.catmullRom)
+                .interpolationMethod(.linear)
 
                 PointMark(
-                    x: .value("Год", item.year),
+                    x: .value("Год", String(item.year)),
                     y: .value("Доход", item.total.doubleValue)
                 )
                 .foregroundStyle(selectedYear == item.year ? .white : AppTheme.accent)
@@ -65,12 +76,13 @@ struct AnnualIncomeChart: View {
                 }
 
                 if selectedYear == item.year {
-                    RuleMark(x: .value("Выбранный год", item.year))
+                    RuleMark(x: .value("Выбранный год", String(item.year)))
                         .foregroundStyle(AppTheme.accent.opacity(0.25))
                         .lineStyle(.init(lineWidth: 1, dash: [4, 4]))
                 }
             }
-            .chartXSelection(value: $selectedYear)
+            .chartXSelection(value: selectedYearLabel)
+            .chartXScale(range: .plotDimension(startPadding: 14, endPadding: 14))
             .chartYAxis {
                 AxisMarks(position: .leading) { value in
                     AxisGridLine().foregroundStyle(.secondary.opacity(0.15))
@@ -82,8 +94,12 @@ struct AnnualIncomeChart: View {
                 }
             }
             .chartXAxis {
-                AxisMarks(values: statistics.map(\.year)) { value in
-                    AxisValueLabel()
+                AxisMarks(values: orderedStatistics.map { String($0.year) }) { value in
+                    AxisValueLabel {
+                        if let year = value.as(String.self) {
+                            Text(year)
+                        }
+                    }
                     AxisTick().foregroundStyle(.secondary.opacity(0.3))
                 }
             }
