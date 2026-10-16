@@ -2,6 +2,7 @@
 DerivedData/
 build/
 *.xcresult
+*.profraw
 
 # Per-user Xcode state
 xcuserdata/
